@@ -10,6 +10,7 @@ Recreate real e-commerce failures (rate-limit misconfig, PII leaks, time skew) s
 - C: Time-skew hydra → JWT nbf + node drift + retries
 
 ## Repo scaffold
+```
 ecommerce-synth-lab/
 ├─ README.md
 ├─ LICENSE
@@ -40,6 +41,7 @@ ecommerce-synth-lab/
 │  └─ mcp_mocks/                        # config diff, flags, chatops, tickets (stubs later)
 └─ CI/
    └─ smoke.yml                         # GH Actions: mapping lint, dry-run, determinism checks (later)
+```
 
 
 ## How it works
