@@ -1,0 +1,69 @@
+scenario: "A_gateway_rate_limit"
+description: "Burst traffic + gateway limit drop on /search → 429 spike; scoped to us-west & Safari."
+seed: 42                     # reproducible RNG
+duration: "PT15M"            # total wall time
+phases:                      # timeline phases
+  - name: baseline
+    start: "PT0M"
+    end:   "PT5M"
+    traffic_multiplier: 1.0
+  - name: burst
+    start: "PT5M"
+    end:   "PT8M"
+    traffic_multiplier: 2.5
+  - name: misconfig_active
+    start: "PT8M"
+    end:   "PT13M"
+    traffic_multiplier: 2.5
+    rate_limit_override:
+      route_id: "search"
+      scope:
+        region: ["us-west"]
+        user_agent: ["Safari"]
+        ab_bucket: ["B"]
+      old_limit_rps: 200
+      new_limit_rps: 80
+  - name: recovery
+    start: "PT13M"
+    end:   "PT15M"
+    traffic_multiplier: 1.5
+services:
+  gateway:
+    service.name: "apigw"
+    routes:
+      - route_id: "search"
+        url.path: "/search"
+        weight: 0.42
+      - route_id: "product"
+        url.path: "/product"
+        weight: 0.25
+      - route_id: "cart"
+        url.path: "/cart"
+        weight: 0.18
+      - route_id: "checkout"
+        url.path: "/checkout"
+        weight: 0.15
+clients:
+  regions: ["us-west","us-east","eu-central"]
+  user_agents: ["Chrome","Safari","Firefox"]
+  ab_buckets: ["A","B"]
+generation:
+  logs:
+    eps: 180                # target events/sec baseline
+    burst_shape: "poisson"  # arrival process
+    include_headers: true   # X-RateLimit-*
+    noise:
+      upstream_5xx_rate: 0.003  # small background 5xx elsewhere
+  metrics:
+    resolution: "10s"
+    include_latency: [ "p50","p95","p99" ]
+  traces:
+    enable: true
+    sample_rate: 0.05
+  changes:
+    emit_diff_docs: true     # write config diff at phase transitions
+validation:
+  expect_429_increase_pct: ">=300"
+  expect_upstream_5xx_correlation: "low"
+  expect_recovery_in_last_2m: "true"
+
