@@ -18,5 +18,5 @@ Timeline phases (baseline → burst → inject → recover) drive generators for
 3) Run the timeline runner (coming next)
 
 ## License
-MIT (suggested)
+MIT
 
